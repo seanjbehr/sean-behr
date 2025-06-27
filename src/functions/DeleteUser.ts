@@ -19,6 +19,9 @@ const httpTrigger = async function (
   const id = request.query.get("id");
   const userId = request.headers.get("x-user-id");
 
+  context.log("Received ID:", id);
+  context.log("Received x-user-id:", userId);
+
   if (!id || !userId) {
     return {
       status: 400,
