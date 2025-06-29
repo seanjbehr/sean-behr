@@ -59,5 +59,17 @@ const httpTrigger = async function (
 export default app.http("GetUser", {
   methods: ["GET"],
   authLevel: "anonymous",
-  handler: httpTrigger,
+  handler: async (req, ctx) => {
+    const res = await httpTrigger(req, ctx);
+    return {
+      ...res,
+      headers: {
+        ...res?.headers,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "*"
+      }
+    };
+  }
 });
+

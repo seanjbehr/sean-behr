@@ -17,11 +17,26 @@ const httpTrigger = async function (
 ): Promise<HttpResponseInit> {
   context.log("EditUser function started");
 
+  // Handle preflight CORS request
+  if (request.method === "OPTIONS") {
+    return {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "OPTIONS, POST",
+        "Access-Control-Allow-Headers": "Content-Type, x-user-id"
+      }
+    };
+  }
+
   const id = request.query.get("id");
   if (!id) {
     return {
       status: 400,
       jsonBody: { error: "Missing user ID in query string: ?id=123" },
+      headers: {
+        "Access-Control-Allow-Origin": "*"
+      }
     };
   }
 
@@ -33,6 +48,9 @@ const httpTrigger = async function (
     return {
       status: 400,
       jsonBody: { error: "Invalid JSON body." },
+      headers: {
+        "Access-Control-Allow-Origin": "*"
+      }
     };
   }
 
@@ -43,6 +61,9 @@ const httpTrigger = async function (
       return {
         status: 404,
         jsonBody: { error: "User not found." },
+        headers: {
+          "Access-Control-Allow-Origin": "*"
+        }
       };
     }
 
@@ -58,18 +79,24 @@ const httpTrigger = async function (
     return {
       status: 200,
       jsonBody: savedItem,
+      headers: {
+        "Access-Control-Allow-Origin": "*"
+      }
     };
   } catch (error) {
     context.log("Failed to update user", error);
     return {
       status: 500,
       jsonBody: { error: "Failed to update user in Cosmos DB." },
+      headers: {
+        "Access-Control-Allow-Origin": "*"
+      }
     };
   }
 };
 
 export default app.http("EditUser", {
-  methods: ["POST"], // using POST as per your video
+  methods: ["POST", "OPTIONS"],
   authLevel: "anonymous",
   handler: httpTrigger,
 });

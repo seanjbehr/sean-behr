@@ -46,7 +46,31 @@ const httpTrigger = async function (
 };
 
 export default app.http("DeleteUser", {
-  methods: ["DELETE"],
+  methods: ["DELETE", "OPTIONS"],
   authLevel: "anonymous",
-  handler: httpTrigger
+  handler: async (req, ctx) => {
+    if (req.method === "OPTIONS") {
+      return {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "*"
+        }
+      };
+    }
+
+    const res = await httpTrigger(req, ctx);
+
+    return {
+      ...res,
+      headers: {
+        ...res?.headers,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "*"
+      }
+    };
+  }
 });
+
