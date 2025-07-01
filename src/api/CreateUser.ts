@@ -4,12 +4,16 @@ import { User } from "../models/user";
 import { UserRecord } from "../models/user-record";
 import { getGuid, getUserId } from "../common/utils";
 import { createUser } from "../dataaccess/user-repository";
+import { checkApiKey } from "../common/auth";
 
 const httpTrigger = async function (
   request: HttpRequest,
   context: InvocationContext
 ): Promise<HttpResponseInit> {
   context.log("Create user started.");
+
+  const unauthorized = checkApiKey(request);
+  if (unauthorized) return unauthorized;
 
   const newUser = await request.json() as NewUser;
 
@@ -41,7 +45,6 @@ const httpTrigger = async function (
       };
     }
   } else {
-    context.log(`Create user invalid input. InvocationId: ${context.invocationId}, NewUser: ${JSON.stringify(newUser)}`);
     return {
       status: 400,
       jsonBody: { error: "Invalid input. Please provide title and description." }
@@ -50,27 +53,15 @@ const httpTrigger = async function (
 };
 
 export default app.http("CreateUser", {
-  methods: ["POST", "OPTIONS"],
+  methods: ["POST"],
   authLevel: "anonymous",
   handler: async (req, ctx) => {
-    if (req.method === "OPTIONS") {
-      // Respond to preflight
-      return {
-        status: 204,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "*"
-        }
-      };
-    }
-
-    const res = await httpTrigger(req, ctx);
+    const response = await httpTrigger(req, ctx);
 
     return {
-      ...res,
+      ...response,
       headers: {
-        ...res?.headers,
+        ...response?.headers,
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "*"
@@ -78,5 +69,4 @@ export default app.http("CreateUser", {
     };
   }
 });
-
 

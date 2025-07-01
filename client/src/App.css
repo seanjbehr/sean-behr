@@ -1,4 +1,4 @@
-* {
+/* {
   box-sizing: border-box;
 }
 
@@ -46,7 +46,7 @@ body {
 }
 
 /* Modal styles */
-.modal {
+/*.modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -105,7 +105,7 @@ body {
 }
 
 /* Page Content Below Navbar */
-main {
+/*main {
   padding: 6rem 2rem 2rem;
   max-width: 600px;
   margin: 0 auto;

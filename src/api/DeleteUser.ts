@@ -1,14 +1,14 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { CosmosClient } from "@azure/cosmos";
+import { checkApiKey } from "../common/auth";
 
-// Cosmos DB setup
 const cosmosConnectionString = process.env.CosmosDBConnection;
 if (!cosmosConnectionString) {
   throw new Error("CosmosDBConnection is not defined in environment variables.");
 }
 
 const client = new CosmosClient(cosmosConnectionString);
-const container = client.database("usercontainer").container("User1"); // Adjust as needed
+const container = client.database("usercontainer").container("User1");
 
 const httpTrigger = async function (
   request: HttpRequest,
@@ -16,11 +16,11 @@ const httpTrigger = async function (
 ): Promise<HttpResponseInit> {
   context.log("DeleteUser function started");
 
+  const unauthorized = checkApiKey(request);
+  if (unauthorized) return unauthorized;
+
   const id = request.query.get("id");
   const userId = request.headers.get("x-user-id");
-
-  context.log("Received ID:", id);
-  context.log("Received x-user-id:", userId);
 
   if (!id || !userId) {
     return {
@@ -31,7 +31,6 @@ const httpTrigger = async function (
 
   try {
     await container.item(id, userId).delete();
-    context.log(`User with ID ${id} deleted.`);
     return {
       status: 200,
       jsonBody: { message: "User deleted successfully." }
@@ -46,26 +45,15 @@ const httpTrigger = async function (
 };
 
 export default app.http("DeleteUser", {
-  methods: ["DELETE", "OPTIONS"],
+  methods: ["DELETE"],
   authLevel: "anonymous",
   handler: async (req, ctx) => {
-    if (req.method === "OPTIONS") {
-      return {
-        status: 204,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "*"
-        }
-      };
-    }
-
-    const res = await httpTrigger(req, ctx);
+    const response = await httpTrigger(req, ctx);
 
     return {
-      ...res,
+      ...response,
       headers: {
-        ...res?.headers,
+        ...response?.headers,
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "*"

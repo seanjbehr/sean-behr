@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import "./App.css";
 
 interface User {
   id: string;
@@ -8,173 +7,180 @@ interface User {
   userId: string;
 }
 
-function App() {
+const API_BASE = "http://localhost:7071/api";
+const API_KEY = "mySuperSecretKey123";
+const USER_ID = "beta";
+
+const App: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [editUserId, setEditUserId] = useState<string | null>(null);
+  const [newTitle, setNewTitle] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:7071/api/GetUser")
-      .then((res) => res.json())
-      .then(setUsers)
-      .catch((err) => console.error("Failed to fetch users:", err));
+    fetch(`${API_BASE}/GetUser`, {
+      headers: {
+        "x-api-key": API_KEY
+      }
+    })
+      .then(res => res.json())
+      .then(data => setUsers(data))
+      .catch(err => console.error("Failed to fetch users:", err));
   }, []);
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      await fetch(`${API_BASE}/CreateUser`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY,
+          "x-user-id": USER_ID
+        },
+        body: JSON.stringify({
+          title: newTitle,
+          description: newDescription
+        })
+      });
 
-    const response = await fetch("http://localhost:7071/api/CreateUser", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-id": "beta"
-      },
-      body: JSON.stringify({ title, description })
-    });
-
-    if (response.ok) {
-      const newUser = await response.json();
-      setUsers([...users, newUser]);
-      setTitle("");
-      setDescription("");
-      setShowForm(false);
-    } else {
-      console.error("Failed to create user");
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to create user:", err);
     }
   };
 
-  const handleDelete = async (id: string, userId: string) => {
-    const response = await fetch(
-      `http://localhost:7071/api/DeleteUser?id=${id}`,
-      {
+  const handleDelete = async (id: string) => {
+    try {
+      await fetch(`${API_BASE}/DeleteUser?id=${id}`, {
         method: "DELETE",
-        headers: { "x-user-id": userId }
-      }
-    );
+        headers: {
+          "x-api-key": API_KEY,
+          "x-user-id": USER_ID
+        }
+      });
 
-    if (response.ok) {
-      setUsers(users.filter((user) => user.id !== id));
-    } else {
-      console.error("Failed to delete user");
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to delete user:", err);
     }
-  };
-
-  const handleEditClick = (user: User) => {
-    setEditUserId(user.id);
-    setEditTitle(user.title);
-    setEditDescription(user.description);
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editUserId) return;
+    if (!editingUser) return;
 
-    const response = await fetch(
-      `http://localhost:7071/api/EditUser?id=${editUserId}`,
-      {
+    try {
+      await fetch(`${API_BASE}/EditUser?id=${editingUser.id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": "beta"
+          "x-api-key": API_KEY,
+          "x-user-id": USER_ID
         },
         body: JSON.stringify({
+          userId: editingUser.userId,
           title: editTitle,
-          description: editDescription,
-          userId: "beta"
+          description: editDescription
         })
-      }
-    );
+      });
 
-    if (response.ok) {
-      const updatedUser = await response.json();
-      setUsers(users.map((u) => (u.id === editUserId ? updatedUser : u)));
-      setEditUserId(null);
-    } else {
-      console.error("Failed to update user");
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to update user:", err);
     }
   };
 
   return (
-    <>
-      <nav className="navbar">
+    <div className="container">
+      <div className="navbar">
         <h1>Beta Users</h1>
-        <button className="plus-btn" onClick={() => setShowForm(true)}>
-          ➕
+        <button className="button" onClick={() => setShowForm(true)}>
+          + Add User
         </button>
-      </nav>
+      </div>
 
       {showForm && (
-        <div className="modal">
-          <form onSubmit={handleCreateUser} className="form">
-            <h2>Create User</h2>
-            <input
-              type="text"
-              placeholder="Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-            <input
-              type="text"
-              placeholder="Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-            />
-            <div className="form-buttons">
-              <button type="submit">Add User</button>
-              <button type="button" onClick={() => setShowForm(false)}>
-                Cancel
+        <form onSubmit={handleSubmit} className="form">
+          <input
+            type="text"
+            placeholder="Title"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            className="input"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Description"
+            value={newDescription}
+            onChange={(e) => setNewDescription(e.target.value)}
+            className="input"
+            required
+          />
+          <button type="submit" className="button">
+            Create User
+          </button>
+        </form>
+      )}
+
+      {editingUser && (
+        <form onSubmit={handleEditSubmit} className="form">
+          <input
+            type="text"
+            placeholder="Title"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            className="input"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Description"
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+            className="input"
+            required
+          />
+          <button type="submit" className="edit-btn">
+            Save Changes
+          </button>
+        </form>
+      )}
+
+      <ul className="user-list">
+        {users.map(user => (
+          <li key={user.id} className="user-item">
+            <div>
+              <strong>{user.title}</strong>
+              <p>{user.description}</p>
+            </div>
+            <div>
+              <button
+                className="edit-btn"
+                onClick={() => {
+                  setEditingUser(user);
+                  setEditTitle(user.title);
+                  setEditDescription(user.description);
+                }}
+              >
+                Edit
+              </button>
+              <button
+                className="delete-btn"
+                onClick={() => handleDelete(user.id)}
+              >
+                Delete
               </button>
             </div>
-          </form>
-        </div>
-      )}
-<main>
-      <ul>
-        {users.map((user) => (
-          <li key={user.id}>
-            {editUserId === user.id ? (
-              <form onSubmit={handleEditSubmit}>
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  required
-                />
-                <input
-                  type="text"
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  required
-                />
-                <button type="submit">Save</button>
-                <button type="button" onClick={() => setEditUserId(null)}>
-                  Cancel
-                </button>
-              </form>
-            ) : (
-              <>
-                <strong>{user.title}</strong>
-                <span>{user.description}</span>
-                <div style={{ marginTop: "0.5rem" }}>
-                  <button onClick={() => handleEditClick(user)}>Edit</button>
-                  <button onClick={() => handleDelete(user.id, user.userId)}>
-                    Delete
-                  </button>
-                </div>
-              </>
-            )}
           </li>
         ))}
       </ul>
-      </main>
-    </>
+    </div>
   );
-}
+};
 
 export default App;

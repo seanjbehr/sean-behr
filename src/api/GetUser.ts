@@ -1,5 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { CosmosClient } from "@azure/cosmos";
+import { checkApiKey } from "../common/auth"; // ✅ Add this line
 
 // Cosmos DB setup
 const cosmosConnectionString = process.env.CosmosDBConnection;
@@ -16,11 +17,14 @@ const httpTrigger = async function (
 ): Promise<HttpResponseInit> {
   context.log("Get user started.");
 
+  // ✅ Add this check just after logging
+  const unauthorized = checkApiKey(request);
+  if (unauthorized) return unauthorized;
+
   const userId = request.query.get("id");
 
   try {
     if (userId) {
-      // Get a single user by ID (used as both ID and partition key)
       const { resource } = await container.item(userId, userId).read();
 
       if (!resource) {
@@ -35,7 +39,6 @@ const httpTrigger = async function (
         jsonBody: resource,
       };
     } else {
-      // Get ALL users
       const query = {
         query: "SELECT * FROM c"
       };
@@ -60,11 +63,11 @@ export default app.http("GetUser", {
   methods: ["GET"],
   authLevel: "anonymous",
   handler: async (req, ctx) => {
-    const res = await httpTrigger(req, ctx);
+    const response = await httpTrigger(req, ctx);
     return {
-      ...res,
+      ...response,
       headers: {
-        ...res?.headers,
+        ...response?.headers,
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "*"
@@ -72,4 +75,5 @@ export default app.http("GetUser", {
     };
   }
 });
+
 

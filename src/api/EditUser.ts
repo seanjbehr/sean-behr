@@ -1,8 +1,8 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { CosmosClient } from "@azure/cosmos";
 import { UserRecord } from "../models/user-record";
+import { checkApiKey } from "../common/auth";
 
-// Cosmos DB setup
 const cosmosConnectionString = process.env.CosmosDBConnection;
 if (!cosmosConnectionString) {
   throw new Error("CosmosDBConnection is not defined in environment variables.");
@@ -17,26 +17,14 @@ const httpTrigger = async function (
 ): Promise<HttpResponseInit> {
   context.log("EditUser function started");
 
-  // Handle preflight CORS request
-  if (request.method === "OPTIONS") {
-    return {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "OPTIONS, POST",
-        "Access-Control-Allow-Headers": "Content-Type, x-user-id"
-      }
-    };
-  }
+  const unauthorized = checkApiKey(request);
+  if (unauthorized) return unauthorized;
 
   const id = request.query.get("id");
   if (!id) {
     return {
       status: 400,
       jsonBody: { error: "Missing user ID in query string: ?id=123" },
-      headers: {
-        "Access-Control-Allow-Origin": "*"
-      }
     };
   }
 
@@ -44,59 +32,55 @@ const httpTrigger = async function (
   try {
     updatedData = await request.json() as Partial<UserRecord>;
   } catch (error) {
-    context.log("Invalid JSON body", error);
     return {
       status: 400,
       jsonBody: { error: "Invalid JSON body." },
-      headers: {
-        "Access-Control-Allow-Origin": "*"
-      }
     };
   }
 
   try {
-    // First, read the existing item
     const { resource: existingUser } = await container.item(id, updatedData.userId).read();
     if (!existingUser) {
       return {
         status: 404,
         jsonBody: { error: "User not found." },
-        headers: {
-          "Access-Control-Allow-Origin": "*"
-        }
       };
     }
 
-    // Merge existing data with updated fields
     const updatedUser = {
       ...existingUser,
       ...updatedData,
     };
 
-    // Save the updated item
     const { resource: savedItem } = await container.item(id, updatedUser.userId).replace(updatedUser);
 
     return {
       status: 200,
       jsonBody: savedItem,
-      headers: {
-        "Access-Control-Allow-Origin": "*"
-      }
     };
   } catch (error) {
     context.log("Failed to update user", error);
     return {
       status: 500,
       jsonBody: { error: "Failed to update user in Cosmos DB." },
-      headers: {
-        "Access-Control-Allow-Origin": "*"
-      }
     };
   }
 };
 
 export default app.http("EditUser", {
-  methods: ["POST", "OPTIONS"],
+  methods: ["POST"],
   authLevel: "anonymous",
-  handler: httpTrigger,
+  handler: async (req, ctx) => {
+    const response = await httpTrigger(req, ctx);
+
+    return {
+      ...response,
+      headers: {
+        ...response?.headers,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "*"
+      }
+    };
+  }
 });
