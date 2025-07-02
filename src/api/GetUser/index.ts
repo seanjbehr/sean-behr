@@ -1,6 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { CosmosClient } from "@azure/cosmos";
 import { checkApiKey } from "../../common/auth";
+import { UserRecord } from "../../models/user-record";
 
 const cosmosConnectionString = process.env.CosmosDBConnection;
 if (!cosmosConnectionString) {
@@ -32,8 +33,7 @@ const httpTrigger = async function (
         };
       }
 
-      // Reshape single user
-      const user = {
+      const user: UserRecord = {
         id: resource.id,
         userId: resource.userId,
         title: resource.title,
@@ -53,8 +53,7 @@ const httpTrigger = async function (
 
       const { resources } = await container.items.query(query).fetchAll();
 
-      // Map and reshape all users
-      const users = resources.map((u) => ({
+      const users: UserRecord[] = resources.map((u) => ({
         id: u.id,
         userId: u.userId,
         title: u.title,

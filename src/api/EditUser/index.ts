@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { CosmosClient } from "@azure/cosmos";
-import { UserRecord } from "../../models/user-record";
 import { checkApiKey } from "../../common/auth";
+import { UserRecord } from "../../models/user-record";
 
 const cosmosConnectionString = process.env.CosmosDBConnection;
 if (!cosmosConnectionString) {
@@ -15,54 +15,47 @@ const httpTrigger = async function (
   request: HttpRequest,
   context: InvocationContext
 ): Promise<HttpResponseInit> {
-  context.log("EditUser function started");
+  context.log("Edit user started.");
 
   const unauthorized = checkApiKey(request);
   if (unauthorized) return unauthorized;
 
-  const id = request.query.get("id");
-  if (!id) {
-    return {
-      status: 400,
-      jsonBody: { error: "Missing user ID in query string: ?id=123" },
-    };
-  }
+  const body = await request.json() as UserRecord;
+  const user: UserRecord = body;
 
-  let updatedData: Partial<UserRecord>;
-  try {
-    updatedData = await request.json() as Partial<UserRecord>;
-  } catch (error) {
+  if (!user || !user.id || !user.userId) {
     return {
       status: 400,
-      jsonBody: { error: "Invalid JSON body." },
+      jsonBody: { error: "Missing user data, ID, or userId" },
     };
   }
 
   try {
-    const { resource: existingUser } = await container.item(id, updatedData.userId).read();
-    if (!existingUser) {
+    const { resource } = await container.item(user.id, user.userId).read();
+
+    if (!resource) {
       return {
         status: 404,
-        jsonBody: { error: "User not found." },
+        jsonBody: { error: "User not found" },
       };
     }
 
-    const updatedUser = {
-      ...existingUser,
-      ...updatedData,
+    const updated = {
+      ...resource,
+      ...user
     };
 
-    const { resource: savedItem } = await container.item(id, updatedUser.userId).replace(updatedUser);
+    await container.item(user.id, user.userId).replace(updated);
 
     return {
       status: 200,
-      jsonBody: savedItem,
+      jsonBody: { message: "User updated successfully", user: updated },
     };
   } catch (error) {
-    context.log("Failed to update user", error);
+    context.log(`Error updating user: ${error}`);
     return {
       status: 500,
-      jsonBody: { error: "Failed to update user in Cosmos DB." },
+      jsonBody: { error: "Failed to update user" },
     };
   }
 };
@@ -72,7 +65,6 @@ export default app.http("EditUser", {
   authLevel: "anonymous",
   handler: async (req, ctx) => {
     const response = await httpTrigger(req, ctx);
-
     return {
       ...response,
       headers: {

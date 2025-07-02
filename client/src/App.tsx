@@ -31,12 +31,12 @@ const App: React.FC = () => {
   useEffect(() => {
     fetch(`${API_BASE}/GetUser`, {
       headers: {
-        "x-api-key": API_KEY
-      }
+        "x-api-key": API_KEY,
+      },
     })
-      .then(res => res.json())
-      .then(data => setUsers(data))
-      .catch(err => console.error("Failed to fetch users:", err));
+      .then((res) => res.json())
+      .then((data) => setUsers(data))
+      .catch((err) => console.error("Failed to fetch users:", err));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,14 +47,14 @@ const App: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
           "x-api-key": API_KEY,
-          "x-user-id": USER_ID
+          "x-user-id": USER_ID,
         },
         body: JSON.stringify({
           title: newTitle,
           description: newDescription,
           email: newEmail,
-          isApproved: newApproved
-        })
+          isApproved: newApproved,
+        }),
       });
 
       window.location.reload();
@@ -69,8 +69,8 @@ const App: React.FC = () => {
         method: "DELETE",
         headers: {
           "x-api-key": API_KEY,
-          "x-user-id": USER_ID
-        }
+          "x-user-id": USER_ID,
+        },
       });
 
       window.location.reload();
@@ -84,20 +84,21 @@ const App: React.FC = () => {
     if (!editingUser) return;
 
     try {
-      await fetch(`${API_BASE}/EditUser?id=${editingUser.id}`, {
+      await fetch(`${API_BASE}/EditUser`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-api-key": API_KEY,
-          "x-user-id": USER_ID
+          "x-user-id": USER_ID,
         },
         body: JSON.stringify({
+          id: editingUser.id,
           userId: editingUser.userId,
           title: editTitle,
           description: editDescription,
           email: editEmail,
-          isApproved: editApproved
-        })
+          isApproved: editApproved,
+        }),
       });
 
       window.location.reload();

@@ -14,18 +14,18 @@ const httpTrigger = async function (
   request: HttpRequest,
   context: InvocationContext
 ): Promise<HttpResponseInit> {
-  context.log("DeleteUser function started");
+  context.log("Delete user started.");
 
   const unauthorized = checkApiKey(request);
   if (unauthorized) return unauthorized;
 
   const id = request.query.get("id");
-  const userId = request.headers.get("x-user-id");
+  const userId = request.headers.get("x-user-id"); // fixed here
 
   if (!id || !userId) {
     return {
       status: 400,
-      jsonBody: { error: "Missing id or x-user-id in request." }
+      jsonBody: { error: "Both id (query) and x-user-id (header) are required" },
     };
   }
 
@@ -33,13 +33,13 @@ const httpTrigger = async function (
     await container.item(id, userId).delete();
     return {
       status: 200,
-      jsonBody: { message: "User deleted successfully." }
+      jsonBody: { message: "User deleted successfully" },
     };
   } catch (error) {
-    context.log(`Delete failed: ${error}`);
+    context.log(`Error deleting user: ${error}`);
     return {
       status: 500,
-      jsonBody: { error: "Failed to delete user from Cosmos DB." }
+      jsonBody: { error: "Failed to delete user" },
     };
   }
 };
@@ -49,7 +49,6 @@ export default app.http("DeleteUser", {
   authLevel: "anonymous",
   handler: async (req, ctx) => {
     const response = await httpTrigger(req, ctx);
-
     return {
       ...response,
       headers: {
@@ -61,4 +60,3 @@ export default app.http("DeleteUser", {
     };
   }
 });
-
