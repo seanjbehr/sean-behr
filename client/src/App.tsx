@@ -4,6 +4,8 @@ interface User {
   id: string;
   title: string;
   description: string;
+  email: string;
+  isApproved: boolean;
   userId: string;
 }
 
@@ -15,9 +17,15 @@ const App: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newApproved, setNewApproved] = useState(false);
+
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editApproved, setEditApproved] = useState(false);
+
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
@@ -43,7 +51,9 @@ const App: React.FC = () => {
         },
         body: JSON.stringify({
           title: newTitle,
-          description: newDescription
+          description: newDescription,
+          email: newEmail,
+          isApproved: newApproved
         })
       });
 
@@ -84,7 +94,9 @@ const App: React.FC = () => {
         body: JSON.stringify({
           userId: editingUser.userId,
           title: editTitle,
-          description: editDescription
+          description: editDescription,
+          email: editEmail,
+          isApproved: editApproved
         })
       });
 
@@ -121,6 +133,22 @@ const App: React.FC = () => {
             className="input"
             required
           />
+          <input
+            type="email"
+            placeholder="Email"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            className="input"
+            required
+          />
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={newApproved}
+              onChange={(e) => setNewApproved(e.target.checked)}
+            />
+            Approved
+          </label>
           <button type="submit" className="button">
             Create User
           </button>
@@ -145,6 +173,22 @@ const App: React.FC = () => {
             className="input"
             required
           />
+          <input
+            type="email"
+            placeholder="Email"
+            value={editEmail}
+            onChange={(e) => setEditEmail(e.target.value)}
+            className="input"
+            required
+          />
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={editApproved}
+              onChange={(e) => setEditApproved(e.target.checked)}
+            />
+            Approved
+          </label>
           <button type="submit" className="edit-btn">
             Save Changes
           </button>
@@ -152,11 +196,13 @@ const App: React.FC = () => {
       )}
 
       <ul className="user-list">
-        {users.map(user => (
+        {users.map((user) => (
           <li key={user.id} className="user-item">
             <div>
               <strong>{user.title}</strong>
               <p>{user.description}</p>
+              <p>Email: {user.email}</p>
+              <p>Approved: {user.isApproved ? "✅" : "❌"}</p>
             </div>
             <div>
               <button
@@ -165,6 +211,8 @@ const App: React.FC = () => {
                   setEditingUser(user);
                   setEditTitle(user.title);
                   setEditDescription(user.description);
+                  setEditEmail(user.email);
+                  setEditApproved(user.isApproved);
                 }}
               >
                 Edit

@@ -1,11 +1,10 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { CosmosClient } from "@azure/cosmos";
-import { checkApiKey } from "../common/auth"; // ✅ Add this line
+import { checkApiKey } from "../common/auth";
 
-// Cosmos DB setup
 const cosmosConnectionString = process.env.CosmosDBConnection;
 if (!cosmosConnectionString) {
-    throw new Error("CosmosDBConnection is not defined in environment variables.");
+  throw new Error("CosmosDBConnection is not defined in environment variables.");
 }
 
 const client = new CosmosClient(cosmosConnectionString);
@@ -17,7 +16,6 @@ const httpTrigger = async function (
 ): Promise<HttpResponseInit> {
   context.log("Get user started.");
 
-  // ✅ Add this check just after logging
   const unauthorized = checkApiKey(request);
   if (unauthorized) return unauthorized;
 
@@ -34,9 +32,19 @@ const httpTrigger = async function (
         };
       }
 
+      // Reshape single user
+      const user = {
+        id: resource.id,
+        userId: resource.userId,
+        title: resource.title,
+        description: resource.description,
+        email: resource.email,
+        isApproved: resource.isApproved
+      };
+
       return {
         status: 200,
-        jsonBody: resource,
+        jsonBody: user,
       };
     } else {
       const query = {
@@ -45,9 +53,19 @@ const httpTrigger = async function (
 
       const { resources } = await container.items.query(query).fetchAll();
 
+      // Map and reshape all users
+      const users = resources.map((u) => ({
+        id: u.id,
+        userId: u.userId,
+        title: u.title,
+        description: u.description,
+        email: u.email,
+        isApproved: u.isApproved
+      }));
+
       return {
         status: 200,
-        jsonBody: resources,
+        jsonBody: users,
       };
     }
   } catch (error) {
@@ -75,5 +93,3 @@ export default app.http("GetUser", {
     };
   }
 });
-
-
