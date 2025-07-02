@@ -1,10 +1,11 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { CosmosClient } from "@azure/cosmos";
+import { checkApiKey } from "../../common/auth";
+import { UserRecord } from "../../models/user-record";
 
-// Cosmos DB setup
 const cosmosConnectionString = process.env.CosmosDBConnection;
 if (!cosmosConnectionString) {
-    throw new Error("CosmosDBConnection is not defined in environment variables.");
+  throw new Error("CosmosDBConnection is not defined in environment variables.");
 }
 
 const client = new CosmosClient(cosmosConnectionString);
@@ -16,11 +17,13 @@ const httpTrigger = async function (
 ): Promise<HttpResponseInit> {
   context.log("Get user started.");
 
+  const unauthorized = checkApiKey(request);
+  if (unauthorized) return unauthorized;
+
   const userId = request.query.get("id");
 
   try {
     if (userId) {
-      // Get a single user by ID (used as both ID and partition key)
       const { resource } = await container.item(userId, userId).read();
 
       if (!resource) {
@@ -30,21 +33,38 @@ const httpTrigger = async function (
         };
       }
 
+      const user: UserRecord = {
+        id: resource.id,
+        userId: resource.userId,
+        title: resource.title,
+        description: resource.description,
+        email: resource.email,
+        isApproved: resource.isApproved
+      };
+
       return {
         status: 200,
-        jsonBody: resource,
+        jsonBody: user,
       };
     } else {
-      // Get ALL users
       const query = {
         query: "SELECT * FROM c"
       };
 
       const { resources } = await container.items.query(query).fetchAll();
 
+      const users: UserRecord[] = resources.map((u) => ({
+        id: u.id,
+        userId: u.userId,
+        title: u.title,
+        description: u.description,
+        email: u.email,
+        isApproved: u.isApproved
+      }));
+
       return {
         status: 200,
-        jsonBody: resources,
+        jsonBody: users,
       };
     }
   } catch (error) {
@@ -59,5 +79,16 @@ const httpTrigger = async function (
 export default app.http("GetUser", {
   methods: ["GET"],
   authLevel: "anonymous",
-  handler: httpTrigger,
+  handler: async (req, ctx) => {
+    const response = await httpTrigger(req, ctx);
+    return {
+      ...response,
+      headers: {
+        ...response?.headers,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "*"
+      }
+    };
+  }
 });
