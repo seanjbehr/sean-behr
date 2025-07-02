@@ -9,7 +9,7 @@ interface User {
   userId: string;
 }
 
-const API_BASE = "http://localhost:7071/api";
+const API_BASE = "/api";
 const API_KEY = "mySuperSecretKey123";
 const USER_ID = "beta";
 
