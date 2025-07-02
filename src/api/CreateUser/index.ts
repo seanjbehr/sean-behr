@@ -1,10 +1,10 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { NewUser } from "../models/new-user";
-import { User } from "../models/user";
-import { UserRecord } from "../models/user-record";
-import { getGuid, getUserId } from "../common/utils";
-import { createUser } from "../dataaccess/user-repository";
-import { checkApiKey } from "../common/auth";
+import { NewUser } from "../../models/new-user";
+import { User } from "../../models/user";
+import { UserRecord } from "../../models/user-record";
+import { getGuid, getUserId } from "../../common/utils";
+import { createUser } from "../../dataaccess/user-repository";
+import { checkApiKey } from "../../common/auth";
 
 const httpTrigger = async function (
   request: HttpRequest,

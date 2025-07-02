@@ -1,6 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { CosmosClient } from "@azure/cosmos";
-import { checkApiKey } from "../common/auth";
+import { checkApiKey } from "../../common/auth";
 
 const cosmosConnectionString = process.env.CosmosDBConnection;
 if (!cosmosConnectionString) {
